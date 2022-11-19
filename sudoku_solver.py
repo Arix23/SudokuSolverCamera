@@ -5,11 +5,14 @@ import pytesseract
 from sudoku import Sudoku
 import PIL
 import time
+
+#Pytesseract configuration
 pytesseract.pytesseract.tesseract_cmd = r'C:/Program Files/Tesseract-OCR/tesseract.exe'
 # luego= "-c tessedit_char_whitelist=0123456789"
 myConfig = r"--psm 10 --oem 3 -c tessedit_char_whitelist=0123456789"
 # myConfig="outbase digits"
 
+#Read video
 video = cv.VideoCapture(0)
 while(video.isOpened()):
     ret, frame = video.read()
@@ -38,6 +41,7 @@ while(video.isOpened()):
             print("ERROR: CAN'T FIND SUDOKU CONTOUR")
         else:
             print("SUDOKU FOUND")
+            #Perform a perspective transform so it takes up the whole window and image.
             contour_points = np.float32([sudoku_contour[0], sudoku_contour[3], sudoku_contour[1], sudoku_contour[2]])
             projection_points = np.float32([[0, 0],[450, 0],[0, 450],[450, 450] ])
 
@@ -56,8 +60,10 @@ while(video.isOpened()):
                 row_sudoku=[]
                 count_zeros=0
                 for cell in cells:
+                    #apply a threshold to make it easier for pytesseract to detect the digits in the grid
                     cell_blur= cv.GaussianBlur(cell,(5,5),0)
                     ret,thresh = cv.threshold(cell_blur,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
+                    #Pytesseract digit detection
                     text = pytesseract.image_to_string(thresh, config=myConfig)
                     # print(type(text))
                     # print(text)
@@ -76,11 +82,13 @@ while(video.isOpened()):
                 sudoku_cells.append(row_sudoku)
 
             if(flag):
+                #Solve sudoku using the library
                 puzzle= Sudoku(3,3,board=sudoku_cells)
                 print(puzzle)
                 solution=puzzle.solve()
                 solution.show()
-
+                
+                #Print sudoku result over the original sudoku grid using the CV Put Text function
                 if(solution.board!=0):
                     xStep = sudoku.shape[0] // 9 
                     yStep = sudoku.shape[1] // 9
@@ -102,7 +110,7 @@ while(video.isOpened()):
                     cv.waitKey(0)
                     time.sleep(20)
 
-
+            #Show the sudoku with the result
             cv.imshow("Puzzle Outline", blur)
 
         if cv.waitKey(1) & 0xFF == ord('q'):
